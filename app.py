@@ -212,6 +212,18 @@ def render_request_done():
 	)
 
 
+@app.route('/crm_bookings/')
+def render_crm_bookings():
+	with open("bookings.json", "r") as f:
+		bookings = json.load(f)
+
+	return render_template(
+		'crm_bookings.html',
+		bookings=bookings,
+	)
+
+
+
 convert_data_to_json()
 create_databases()
 
