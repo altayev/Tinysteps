@@ -212,7 +212,8 @@ def render_request_done():
 	)
 
 
+convert_data_to_json()
+create_databases()
+
 if __name__ == '__main__':
-	convert_data_to_json()
-	create_databases()
 	app.run()
