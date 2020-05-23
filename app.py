@@ -12,6 +12,7 @@ from utilities import get_days
 app = Flask(__name__)
 app.secret_key = 'Developer' #TODO Скрыть этот ключ в переменной окружения в .env
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URL")
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db.init_app(app)
 migrate = Migrate(app, db)
