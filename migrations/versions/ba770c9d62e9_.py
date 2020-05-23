@@ -9,6 +9,8 @@ from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
+from utilities import convert_data_to_json, json_goals_to_db, json_teachers_goals_to_db, json_teachers_to_db, json_timeslots_to_db
+
 # revision identifiers, used by Alembic.
 revision = 'ba770c9d62e9'
 down_revision = None
@@ -27,6 +29,11 @@ def upgrade():
     op.drop_table('timeslots')
     op.drop_table('requests')
     # ### end Alembic commands ###
+    convert_data_to_json()
+    json_teachers_to_db()
+    json_timeslots_to_db()
+    json_goals_to_db()
+    json_teachers_goals_to_db()
 
 
 def downgrade():

@@ -1,35 +1,20 @@
-import json
+import os
 
-from flask import Flask, render_template, request
+from flask import Flask, render_template
 from sqlalchemy import func
 from flask_migrate import Migrate
 
-import data
 from forms import BookingForm, RequestForm
 from models import *
-from utilities import json_goals_to_db, json_teachers_goals_to_db, json_teachers_to_db, json_timeslots_to_db
+from utilities import get_days
 
 
 app = Flask(__name__)
 app.secret_key = 'Developer' #TODO Скрыть этот ключ в переменной окружения в .env
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql+psycopg2://postgres:postgres@127.0.0.1:5432/postgres' #TODO Скрыть это в переменной окружения в .env
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URL")
 
 db.init_app(app)
 migrate = Migrate(app, db)
-
-def convert_data_to_json():
-	teachers = data.teachers
-	with open("teachers.json", "w", encoding='utf8') as f:
-		json.dump(teachers, f, ensure_ascii=False)
-
-	goals = data.goals
-	with open("goals.json", "w", encoding='utf8') as f:
-		json.dump(goals, f, ensure_ascii=False)
-
-	days = data.days
-	with open("days.json", "w", encoding='utf8') as f:
-		json.dump(days, f, ensure_ascii=False)
-
 
 
 @app.route('/')
@@ -70,8 +55,7 @@ def render_goal(goal):
 @app.route('/profiles/<profile_id>')
 def render_profile(profile_id):
 
-	with open("days.json", "r") as f:
-		days = json.load(f)
+	days = get_days()
 
 	teacher = Teacher.query.filter(Teacher.id == profile_id).scalar()
 	slots = []
@@ -95,8 +79,7 @@ def render_profile(profile_id):
 @app.route('/booking/<profile_id>/<day>/<time>/')
 def render_booking(profile_id, day, time):
 
-	with open("days.json", "r") as f:
-		days = json.load(f)
+	days = get_days()
 
 	teacher = Teacher.query.filter(Teacher.id == profile_id).scalar()
 
@@ -221,12 +204,6 @@ def render_all_requests():
 		all_requests=all_requests,
 	)
 
-
-convert_data_to_json()
-json_teachers_to_db()
-json_timeslots_to_db()
-json_goals_to_db()
-json_teachers_goals_to_db()
 
 if __name__ == '__main__':
 	app.run()

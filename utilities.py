@@ -1,4 +1,26 @@
-from app import *
+import json
+import data
+from models import *
+
+
+def get_days():
+	with open("days.json", "r") as f:
+		days = json.load(f)
+	return days
+
+
+def convert_data_to_json():
+	teachers = data.teachers
+	with open("teachers.json", "w", encoding='utf8') as f:
+		json.dump(teachers, f, ensure_ascii=False)
+
+	goals = data.goals
+	with open("goals.json", "w", encoding='utf8') as f:
+		json.dump(goals, f, ensure_ascii=False)
+
+	days = data.days
+	with open("days.json", "w", encoding='utf8') as f:
+		json.dump(days, f, ensure_ascii=False)
 
 
 def get_teachers_from_json():
