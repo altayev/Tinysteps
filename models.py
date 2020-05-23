@@ -79,6 +79,3 @@ class Booking(db.Model):
 	timeslot_id = db.Column(db.Integer, db.ForeignKey('timeslots.id'))
 	timeslots = db.relationship('Timeslot', back_populates='bookings')
 	created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow(),  nullable=False)
-
-
-db = SQLAlchemy()

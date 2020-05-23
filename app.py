@@ -208,3 +208,6 @@ def render_all_requests():
 
 if __name__ == '__main__':
 	app.run()
+
+	#export DATABASE_URL=postgresql+psycopg2://postgres:postgres@127.0.0.1:5432/tinystepik
+
