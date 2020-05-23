@@ -6,8 +6,8 @@
     <h1 class="h1 text-center mx-auto mt-4 py-5"><strong>Найдите идеального <br>репетитора английского, <br>занимайтесь онлайн</strong></h1>
     <div class="text-center mb-5">
       <div class="btn-group mx-auto mb-0" role="group" aria-label="Basic example">
-          {% for goal_k, goal_v in goals.items() %}
-              <a href="/goals/{{ goal_k }}" class="btn btn-outline-secondary">{{ goal_v }}</a>
+          {% for goal in goals %}
+              <a href="/goals/{{ goal.goal_slug }}" class="btn btn-outline-secondary">{{ goal.goal_text }}</a>
           {% endfor %}
       </div>
     </div>

@@ -10,28 +10,25 @@
 
             <section class="teacher=info">
               <h1 class="h2">{{ teacher.name }}</h1>
-              <p>{% for goal in teacher.goals %}<span class="badge badge-secondary mr-2">{{ goals[goal] }} </span>{% endfor %}</p>
+              <p>{% for goal in teacher.goals %}<span class="badge badge-secondary mr-2">{{ goal.goal_text }} </span>{% endfor %}</p>
               <p>Рейтинг: {{ teacher.rating }} Ставка: {{ teacher.price }} / час</p>
 
                 <p>{{ teacher.about }}</p>
             </section>
 
             <section class="available">
-
-              <h4 class="mb-4 mt-5">Записаться на пробный урок</h4>
-
-                {% for day, times in teacher_time.items() %}
-                    <h6 class="mt-4">{{ days[day] }}</h6>
-                    {% if True not in times.values() %}
-                        <p>Нет свободных уроков</p>
-                    {% endif %}
-                    {% for time, vacancy in times.items()  %}
-                        {% if vacancy %}
-                            <a href="/booking/{{ teacher.id }}/{{ day }}/{{ time.replace(":", "-") }}/ " class="btn btn-outline-success  mr-2">{{ time }} свободно</a>
+                <h4 class="mb-4 mt-5">Записаться на пробный урок</h4>
+                {% for slot in slots %}
+                    {% for day, times in slot.items() %}
+                        <h6 class="mt-4">{{ days[day] }}</h6>
+                        {% if times|length < 1 %}
+                            <p>Нет свободных уроков</p>
                         {% endif %}
+                        {% for time in times %}
+                            <a href="/booking/{{ teacher.id }}/{{ day}}/{{ time.replace(":", "-") }}/ " class="btn btn-outline-success mr-2">{{ time }} свободно</a>
+                        {% endfor %}
                     {% endfor %}
                 {% endfor %}
-
             </section>
 
           </div>

@@ -1,13 +1,21 @@
-from flask import Flask, render_template, request
-import data
 import json
-import random
+
+from flask import Flask, render_template, request
+from sqlalchemy import func
+from flask_migrate import Migrate
+
+import data
 from forms import BookingForm, RequestForm
+from models import *
+from utilities import json_goals_to_db, json_teachers_goals_to_db, json_teachers_to_db, json_timeslots_to_db
 
 
 app = Flask(__name__)
 app.secret_key = 'Developer' #TODO Скрыть этот ключ в переменной окружения в .env
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql+psycopg2://postgres:postgres@127.0.0.1:5432/postgres' #TODO Скрыть это в переменной окружения в .env
 
+db.init_app(app)
+migrate = Migrate(app, db)
 
 def convert_data_to_json():
 	teachers = data.teachers
@@ -23,64 +31,37 @@ def convert_data_to_json():
 		json.dump(days, f, ensure_ascii=False)
 
 
-def create_databases():
-	with open("bookings.json", "w", encoding='utf8') as f:
-		json.dump([{}], f, ensure_ascii=False)
-
-	with open("requests.json", "w", encoding='utf8') as f:
-		json.dump([{}], f, ensure_ascii=False)
-
 
 @app.route('/')
 def render_index():
-	with open("teachers.json", "r") as f:
-		teachers = json.load(f)
-
-	with open("goals.json", "r") as f:
-		goals = json.load(f)
-
-
-	random.shuffle(teachers)
-
 	return render_template(
 		'index.html',
-		teachers=teachers,
-		goals=goals,
+		teachers=Teacher.query.order_by(func.random()).limit(6).all(),
+		goals=Goal.query.all(),
 	)
 
 
 @app.route('/all')
 def render_all():
-	with open("teachers.json", "r") as f:
-		teachers = json.load(f)
-
-	with open("goals.json", "r") as f:
-		goals = json.load(f)
-
 	return render_template(
 		'all.html',
-		teachers=teachers,
-		goals=goals,
+		teachers=Teacher.query.order_by(Teacher.rating.desc()).all(),
+		goals=Goal.query.all(),
 	)
 
 
 @app.route('/goals/<goal>')
 def render_goal(goal):
-	with open("teachers.json", "r") as f:
-		teachers = json.load(f)
+	goal_db = (db.session.query(Goal).filter(Goal.goal_slug == goal)).scalar()
 
-	with open("goals.json", "r") as f:
-		goals = json.load(f)
-
-	teachers = [teacher for teacher in teachers if goal in teacher['goals']]
-
-	goal_text = goals[goal].split(' ')[-1]
-	goal_emoji = goals[goal].split(' ')[0]
+	teachers = goal_db.teacher
+	goal_full_text = goal_db.goal_text
+	goal_emoji, *args, goal_text = goal_full_text.split(' ')
 
 	return render_template(
 		'goal.html',
 		teachers=teachers,
-		goals=goals,
+		goals=Goal.query.all(),
 		goal_text=goal_text,
 		goal_emoji=goal_emoji,
 	)
@@ -88,43 +69,43 @@ def render_goal(goal):
 
 @app.route('/profiles/<profile_id>')
 def render_profile(profile_id):
-	with open("teachers.json", "r") as f:
-		teachers = json.load(f)
-
-	with open("goals.json", "r") as f:
-		goals = json.load(f)
 
 	with open("days.json", "r") as f:
 		days = json.load(f)
 
-	teacher = [teacher for teacher in teachers if teacher['id'] == int(profile_id)][0]
-
-	teacher_time = teacher['free']
-
+	teacher = Teacher.query.filter(Teacher.id == profile_id).scalar()
+	slots = []
+	for slug, weekday in days.items():
+		times = []
+		for slot in teacher.timeslots:
+			if slot.weekday == slug:
+				times.append(slot.time.strftime("%H:%M"))
+		slot = {
+			slug:times
+		}
+		slots.append(slot)
 	return render_template(
 		'profile.html',
 		teacher=teacher,
-		goals=goals,
-		teacher_time=teacher_time,
 		days=days,
+		slots=slots,
 	)
 
 
 @app.route('/booking/<profile_id>/<day>/<time>/')
 def render_booking(profile_id, day, time):
-	with open("teachers.json", "r") as f:
-		teachers = json.load(f)
 
 	with open("days.json", "r") as f:
 		days = json.load(f)
 
-	teacher = [teacher for teacher in teachers if teacher['id'] == int(profile_id)][0]
+	teacher = Teacher.query.filter(Teacher.id == profile_id).scalar()
 
-	teacher_name = teacher['name']
-	teacher_pic = teacher['picture']
-	teacher_id = teacher['id']
-	day = days[day]
+	teacher_name = teacher.name
+	teacher_pic = teacher.picture
 	time = time.replace("-", ":")
+	timeslot = (Timeslot.query.filter(db.and_(Timeslot.teacher_id == int(profile_id), Timeslot.weekday == day, Timeslot.time == time))).scalar()
+	timeslot_id = timeslot.id
+	day = days[day]
 
 	form = BookingForm()
 
@@ -132,39 +113,42 @@ def render_booking(profile_id, day, time):
 		'booking.html',
 		teacher_name=teacher_name,
 		teacher_pic=teacher_pic,
-		teacher_id=teacher_id,
+		teacher_id=profile_id,
+		timeslot_id=timeslot_id,
 		day=day,
 		time=time,
 		form=form,
 	)
 
 
-@app.route('/booking_done/', methods=["POST"])
+@app.route('/booking_done/', methods=["GET", "POST"])
 def render_booking_done():
 	form = BookingForm()
+
+	if not form.phone.data:
+		form = RequestForm()
+		return render_template(
+			'request.html',
+			form=form,
+		)
+
 	name = form.name.data
 	phone = form.phone.data
 	day = form.day.data
 	time = form.time.data
 	teacher_id = form.teacher_id.data
-	teacher_name = form.teacher_name.data
+	timeslot_id = form.timeslot_id.data
 
-	with open("bookings.json", "r", encoding='utf8') as f:
-		bookings = json.load(f)
+	if Student.query.filter(Student.phone == phone).scalar():
+		student = Student.query.filter(Student.phone == phone).scalar()
+	else:
+		student = Student(name=name, phone=phone)
+		db.session.add(student)
+		db.session.commit()
 
-	booking_info = {
-		'client_id': len(bookings) + 1,
-		'client_name': name,
-		'client_phone': phone,
-		'booking_date': f"{day},{time}",
-		'booking_teacher': f"{teacher_name} (ID:{teacher_id})",
-	}
-
-	bookings.append(booking_info)
-
-	with open("bookings.json", "w", encoding='utf8') as f:
-		json.dump(bookings, f, ensure_ascii=False)
-
+	booking = Booking(student_id=student.id, teacher_id=teacher_id, timeslot_id=timeslot_id)
+	db.session.add(booking)
+	db.session.commit()
 
 	return render_template(
 		'booking_done.html',
@@ -186,25 +170,31 @@ def render_request():
 	)
 
 
-@app.route('/request_done/', methods=["POST"])
+@app.route('/request_done/', methods=["GET", "POST"])
 def render_request_done():
 	form = RequestForm()
 
-	with open("requests.json", "r", encoding='utf8') as f:
-		requests = json.load(f)
+	if not form.phone.data:
+		return render_template(
+			'request.html',
+			form=form,
+		)
 
-	requests_info = {
-		'client_id': len(requests) + 1,
-		'client_name': form.name.data,
-		'client_phone': form.phone.data,
-		'client_hours': form.have_hours.data,
-		'client_goal': form.goal.data,
-	}
+	name = form.name.data
+	phone = form.phone.data
+	have_hours = form.have_hours.data
+	goal = form.goal.data
 
-	requests.append(requests_info)
+	if Student.query.filter(Student.phone == phone).scalar():
+		student = Student.query.filter(Student.phone == phone).scalar()
+	else:
+		student = Student(name=name, phone=phone)
+		db.session.add(student)
+		db.session.commit()
 
-	with open("requests.json", "w", encoding='utf8') as f:
-		json.dump(requests, f, ensure_ascii=False)
+	current_request = Request(student_id=student.id, goal=goal, have_time=have_hours)
+	db.session.add(current_request)
+	db.session.commit()
 
 	return render_template(
 		'request_done.html',
@@ -212,20 +202,31 @@ def render_request_done():
 	)
 
 
-@app.route('/crm_bookings/')
-def render_crm_bookings():
-	with open("bookings.json", "r") as f:
-		bookings = json.load(f)
+@app.route('/all_bookings/')
+def render_all_bookings():
+	bookings = Booking.query.all()
 
 	return render_template(
-		'crm_bookings.html',
+		'all_bookings.html',
 		bookings=bookings,
 	)
 
 
+@app.route('/all_requests/')
+def render_all_requests():
+	all_requests = Request.query.all()
+
+	return render_template(
+		'all_requests.html',
+		all_requests=all_requests,
+	)
+
 
 convert_data_to_json()
-create_databases()
+json_teachers_to_db()
+json_timeslots_to_db()
+json_goals_to_db()
+json_teachers_goals_to_db()
 
 if __name__ == '__main__':
 	app.run()

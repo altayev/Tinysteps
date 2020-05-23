@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <main class="container mt-3">
+      <table class="table">
+          <thead>
+          <tr>
+              <th scope="col">Номер заявки</th>
+              <th scope="col">Студент</th>
+              <th scope="col">Телефон</th>
+              <th scope="col">Цель</th>
+              <th scope="col">Времени на учебу</th>
+              <th scope="col">Дата создания заявки</th>
+          </tr>
+          </thead>
+          <tbody>
+          {% for request in all_requests %}
+              <tr>
+                  <th scope="row">{{ request.id }}</th>
+                  <td>{{ request.student.name }} (id{{ request.student.id }})</td>
+                  <td>{{ request.student.phone }}</td>
+                  <td>{{ request.goal }}</td>
+                  <td>{{ request.have_time }}</td>
+                  <td>{{ request.created_at }}</td>
+              </tr>
+          {% endfor %}
+          </tbody>
+      </table>
+  </main>
+{% endblock content %}

@@ -9,6 +9,7 @@ class BookingForm(FlaskForm):
     day = HiddenField()
     time = HiddenField()
     teacher_id = HiddenField()
+    timeslot_id = HiddenField()
     teacher_name = HiddenField()
     submit = SubmitField("Записаться на пробный урок")
 
