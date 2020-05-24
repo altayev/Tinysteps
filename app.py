@@ -6,7 +6,7 @@ from flask_migrate import Migrate
 
 from forms import BookingForm, RequestForm
 from models import *
-from utilities import get_days
+from data import days
 
 
 app = Flask(__name__)
@@ -56,8 +56,6 @@ def render_goal(goal):
 @app.route('/profiles/<profile_id>')
 def render_profile(profile_id):
 
-	days = get_days()
-
 	teacher = Teacher.query.filter(Teacher.id == profile_id).scalar()
 	slots = []
 	for slug, weekday in days.items():
@@ -79,8 +77,6 @@ def render_profile(profile_id):
 
 @app.route('/booking/<profile_id>/<day>/<time>/')
 def render_booking(profile_id, day, time):
-
-	days = get_days()
 
 	teacher = Teacher.query.filter(Teacher.id == profile_id).scalar()
 
@@ -208,6 +204,4 @@ def render_all_requests():
 
 if __name__ == '__main__':
 	app.run()
-
-	#export DATABASE_URL=postgresql+psycopg2://postgres:postgres@127.0.0.1:5432/tinystepik
 

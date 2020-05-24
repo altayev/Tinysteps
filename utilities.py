@@ -3,16 +3,6 @@ import data
 from models import *
 
 
-def get_days():
-	days = data.days
-	with open("days.json", "w", encoding='utf8') as f:
-		json.dump(days, f, ensure_ascii=False)
-
-	with open("days.json", "r") as f:
-		days = json.load(f)
-	return days
-
-
 def convert_data_to_json():
 	teachers = data.teachers
 	with open("teachers.json", "w", encoding='utf8') as f:
